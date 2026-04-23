@@ -234,6 +234,121 @@ spec:
   selector:
     app: makeline-service
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openai-api-secret
+type: Opaque
+data:
+  OPENAI_API_KEY: ""
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-service
+  template:
+    metadata:
+      labels:
+        app: ai-service
+    spec:
+      containers:
+      - name: ai-service
+        image: muhannadj27/bestbuy-ai-service:latest
+        ports:
+        - containerPort: 5001
+        env:
+        - name: USE_AZURE_OPENAI
+          value: "False"
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openai-api-secret
+              key: OPENAI_API_KEY
+        resources:
+          requests:
+            cpu: 1m
+            memory: 200Mi
+          limits:
+            cpu: "1"
+            memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5001
+    targetPort: 5001
+  selector:
+    app: ai-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: virtual-customer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: virtual-customer
+  template:
+    metadata:
+      labels:
+        app: virtual-customer
+    spec:
+      containers:
+      - name: virtual-customer
+        image: muhannadj27/bestbuy-virtual-customer:latest
+        env:
+        - name: ORDER_SERVICE_URL
+          value: "http://order-service:3000/"
+        - name: CUSTOMER_ORDER_INTERVAL_IN_SECONDS
+          value: "10"
+        resources:
+          requests:
+            cpu: 1m
+            memory: 200Mi
+          limits:
+            cpu: "1"
+            memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: virtual-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: virtual-worker
+  template:
+    metadata:
+      labels:
+        app: virtual-worker
+    spec:
+      containers:
+      - name: virtual-worker
+        image: muhannadj27/bestbuy-virtual-worker:latest
+        env:
+        - name: MAKELINE_SERVICE_URL
+          value: "http://makeline-service:3001/"
+        - name: WORKER_ORDER_COMPLETE_INTERVAL_IN_SECONDS
+          value: "30"
+        resources:
+          requests:
+            cpu: 1m
+            memory: 200Mi
+          limits:
+            cpu: "1"
+            memory: 512Mi
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -305,7 +420,9 @@ spec:
         image: rabbitmq:3-management
         ports:
         - containerPort: 5672
+          name: amqp
         - containerPort: 15672
+          name: management
         env:
         - name: RABBITMQ_DEFAULT_USER
           value: "username"
@@ -339,7 +456,9 @@ spec:
   ports:
   - port: 5672
     targetPort: 5672
+    name: amqp
   - port: 15672
     targetPort: 15672
+    name: management
   selector:
     app: rabbitmq
