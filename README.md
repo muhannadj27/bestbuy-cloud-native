@@ -2,13 +2,13 @@
 
 ## CST8915 — Full Stack Cloud Development (Final Project)
 
-**Student:** Muhannad J  
+**Student:** Mohannad Jaber  
 **Course:** CST8915 — Winter 2026  
 **Professor:** Ramy Mohamed
 
 ## Demo Video
 
-[YouTube Demo Video](https://youtu.be/YOUR_VIDEO_LINK_HERE)
+[YouTube Demo Video](https://youtu.be/EdQwInCxByk))
 
 ## Application Overview
 
